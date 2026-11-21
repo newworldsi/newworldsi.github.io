@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>待發箱 · 數據管理版</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0f1419;
+    color: #e7e9ea;
+    font-family: -apple-system, "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    padding: 12px;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+  h1 { font-size: 24px; margin-bottom: 4px; }
+  h2 { font-size: 18px; margin: 20px 0 10px; color: #1d9bf0; }
+  .sub { color: #8b98a5; font-size: 13px; margin-bottom: 16px; }
+  .section {
+    background: #1c2733;
+    border: 1px solid #38444d;
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 18px;
+  }
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+    align-items: center;
+  }
+  input[type="text"], select, textarea {
+    background: #15202b;
+    border: 1px solid #38444d;
+    color: #e7e9ea;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+  }
+  textarea {
+    width: 100%;
+    min-height: 180px;
+    resize: vertical;
+    font-family: inherit;
+    line-height: 1.5;
+  }
+  button, .btn {
+    background: #1d9bf0;
+    color: #fff;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  button.secondary { background: #38444d; }
+  button.danger { background: #b91c1c; }
+  button.success { background: #065f46; }
+  button:hover { filter: brightness(1.1); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .table-wrap { overflow-x: auto; max-height: 380px; overflow-y: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 700px; }
+  th, td { border: 1px solid #38444d; padding: 6px 8px; vertical-align: top; }
+  th { background: #253341; position: sticky; top: 0; z-index: 2; }
+  td[contenteditable="true"] { background: #15202b; outline: none; min-width: 80px; }
+  td[contenteditable="true"]:focus { outline: 2px solid #1d9bf0; }
+  .col-id { width: 60px; }
+  .col-account { width: 120px; }
+  .col-status { width: 100px; }
+  .col-sendable { width: 70px; text-align: center; }
+  .col-text { min-width: 280px; }
+  .col-action { width: 60px; text-align: center; }
+
+  .card {
+    background: #1c2733;
+    border: 1px solid #38444d;
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .card.sent { opacity: 0.5; }
+  .meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .tag { background: #253341; border-radius: 999px; padding: 2px 10px; font-size: 12px; }
+  .tag.status { background: #1d4ed8; }
+  .tag.drafting { background: #6b5500; color: #ffe9a8; }
+  .tag.sent-tag { background: #065f46; color: #a7f3d0; }
+  .text {
+    white-space: pre-wrap;
+    word-break: break-word;
+    background: #15202b;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 8px;
+    font-size: 16px;
+  }
+  .char-count { font-size: 12px; color: #8b98a5; text-align: right; margin-bottom: 8px; }
+  .char-count.warn { color: #f59e0b; }
+  .char-count.over { color: #ef4444; }
+  .btns { display: flex; flex-direction: column; gap: 8px; }
+  .btn-row { display: flex; gap: 8px; }
+  .btn-row button, .btn-row a { flex: 1; text-align: center; text-decoration: none; padding: 10px; border-radius: 999px; font-weight: 700; }
+  .copy { background: #e7e9ea; color: #0f1419; }
+  .open { background: #1d9bf0; color: #fff; }
+  .mark { background: #065f46; color: #a7f3d0; }
+  .unmark { background: #374151; }
+
+  .stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .stat { background: #253341; padding: 6px 12px; border-radius: 999px; font-size: 13px; }
+  .stat strong { color: #1d9bf0; }
+  .empty { text-align: center; padding: 40px; color: #8b98a5; }
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: #e7e9ea; color: #0f1419; padding: 12px 20px; border-radius: 999px;
+    font-weight: 600; opacity: 0; transition: all 0.3s; z-index: 100; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  footer { color: #8b98a5; font-size: 13px; margin-top: 20px; border-top: 1px solid #38444d; padding-top: 12px; }
+  .note { font-size: 12px; color: #8b98a5; margin-top: 6px; }
+  .paste-tip { font-size: 13px; color: #8b98a5; margin-bottom: 8px; line-height: 1.5; }
+</style>
+</head>
+<body>
+  <h1>待發箱 · 數據管理版</h1>
+  <p class="sub">888 備稿 → 表格調整 → 載入待發箱 → 親手發到指定帳號</p>
+
+  <!-- 1. 帳號選擇 -->
+  <div class="section">
+    <h2>1. 選擇預設推特帳號</h2>
+    <div class="toolbar">
+      <input type="text" id="defaultAccount" placeholder="@Newwish0" value="@Newwish0" style="width:160px">
+      <button onclick="applyDefaultAccount()">應用到所有空白帳號</button>
+      <a id="openProfileBtn" href="https://x.com/Newwish0" target="_blank" class="btn" style="text-decoration:none;">打開我的推特主頁</a>
+    </div>
+    <p class="note">注意：X 網頁發帖只能發到瀏覽器當前登入的帳號，請先切換好帳號再點「在 X 打開」</p>
+  </div>
+
+  <!-- 2. 批量粘貼導入（新增重點功能） -->
+  <div class="section">
+    <h2>2. 批量粘貼最近推文（推薦使用）</h2>
+    <p class="paste-tip">
+      1. 先點上方「打開我的推特主頁」→ 複製你想導入的推文<br>
+      2. 粘貼到下方大文本框（每條推文之間空一行最準確）<br>
+      3. 可以繼續修改後，點「解析並導入」
+    </p>
+    <textarea id="pasteArea" placeholder="在這裡粘貼推文內容...
+
+示例：
+第一條推文內容
+可以多行
+
+第二條推文內容
+也可以多行
+
+第三條..."></textarea>
+    <div class="toolbar" style="margin-top:10px;">
+      <button class="success" onclick="parseAndImport()">解析並導入到表格</button>
+      <button class="secondary" onclick="document.getElementById('pasteArea').value=''">清空文本框</button>
+    </div>
+  </div>
+
+  <!-- 3. 數據表格 -->
+  <div class="section">
+    <h2>3. 待發數據表（可直接編輯）</h2>
+    <div class="toolbar">
+      <button onclick="addRow()">＋ 新增一行</button>
+      <button class="secondary" onclick="loadSampleData()">載入原示例推文</button>
+      <button class="secondary" onclick="loadRecentTemplates()">載入近期模板</button>
+      <button class="success" onclick="exportExcel()">匯出 Excel</button>
+      <label class="btn secondary" style="cursor:pointer">
+        匯入 Excel
+        <input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importExcel(event)">
+      </label>
+      <button class="danger" onclick="clearTable()">清空表格</button>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="col-id">編號</th>
+            <th class="col-account">帳號</th>
+            <th class="col-status">狀態</th>
+            <th class="col-sendable">可發</th>
+            <th class="col-text">推文內容</th>
+            <th class="col-action">操作</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 載入到待發箱 -->
+  <div class="section" style="text-align:center">
+    <button style="font-size:16px;padding:12px 28px" onclick="loadToOutbox()">
+      ↓ 將表格數據載入到待發箱
+    </button>
+  </div>
+
+  <!-- 待發箱 -->
+  <div class="section">
+    <h2>4. 待發箱（實際發送區）</h2>
+    <div class="stats" id="stats"></div>
+    <div class="toolbar">
+      <button class="secondary" onclick="showMode='pending';renderOutbox()">只看待發</button>
+      <button class="secondary" onclick="showMode='all';renderOutbox()">顯示全部</button>
+      <button class="danger" onclick="resetSent()">重置已發送標記</button>
+    </div>
+    <div id="queue"></div>
+    <div id="empty" class="empty" style="display:none">
+      <h3>目前沒有待發內容</h3>
+      <p>請先準備數據，再點「載入到待發箱」</p>
+    </div>
+  </div>
+
+  <footer>
+    流程：打開主頁複製推文 → 粘貼到文本框 → 解析導入 → 載入待發箱 → 親手發帖 → 標記已發送
+  </footer>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+let tableData = [];
+let outboxData = [];
+let showMode = 'pending';
+const STORAGE_SENT = 'outbox_sent_ids_v3';
+const STORAGE_TABLE = 'outbox_table_data_v3';
+
+const SAMPLE_DATA = [
+  { id: "001", account: "@Newwish0", status: "待發（測試）", text: "測試：手工發帖通道測試，此帖即刪。", sendable: true },
+  { id: "002", account: "@Newwish0", status: "待發", text: "一個小頻道，昨天一天漲了 26 位訂閱，總播放破 1.3 萬。謝謝每一位點開的人——我們繼續把真問題講清楚。下一個問題，明天見。", sendable: true },
+  { id: "003", account: "@Newwish0", status: "備稿中", text: "（EP4 預告：選題定後由 888 補全文）", sendable: false }
+];
+
+const RECENT_TEMPLATES = [
+  { id: "R01", account: "@Newwish0", status: "待發", text: "一個小頻道，昨天一天漲了 26 位訂閱，總播放破 1.3 萬。謝謝每一位點開的人——我們繼續把真問題講清楚。下一個問題，明天見。", sendable: true },
+  { id: "R02", account: "@Newwish0", status: "待發", text: "馬斯克：那將是我的榮幸——黃仁勳下一站去哪？\n\n先說清楚：這只是表態願意，不是正式邀約，目前沒有任何聘用安排得到確認。快訊 55 秒👇\nhttps://www.youtube.com/shorts/Sdbhu4mPD2Q", sendable: true },
+  { id: "R03", account: "@Newwish0", status: "待發", text: "黃仁勳辭職短劇第3集｜沒有他的第一份成績單\n\n11月17日，英偉達交出33年來第一份沒有黃仁勳的財報。市場預期營收約1080億美元，財報夜看三個數：營收、毛利率、下一季指引。\n\nhttps://www.youtube.com/watch?v=2F-XqV9ZTiA\n\n#黃仁勳 #英偉達 #NVIDIA", sendable: true }
+];
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(window._tt);
+  window._tt = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function getSentIds() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_SENT) || '[]'); } catch { return []; }
+}
+function saveSentIds(ids) { localStorage.setItem(STORAGE_SENT, JSON.stringify(ids)); }
+function saveTableToStorage() { localStorage.setItem(STORAGE_TABLE, JSON.stringify(tableData)); }
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function renderTable() {
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+  tableData.forEach((row, idx) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="col-id" contenteditable="true" data-field="id">${esc(row.id)}</td>
+      <td class="col-account" contenteditable="true" data-field="account">${esc(row.account)}</td>
+      <td class="col-status" contenteditable="true" data-field="status">${esc(row.status)}</td>
+      <td class="col-sendable">
+        <input type="checkbox" ${row.sendable ? 'checked' : ''} onchange="tableData[${idx}].sendable=this.checked;saveTableToStorage()">
+      </td>
+      <td class="col-text" contenteditable="true" data-field="text">${esc(row.text)}</td>
+      <td class="col-action"><button class="danger" style="padding:4px 8px;font-size:12px" onclick="deleteRow(${idx})">刪</button></td>
+    `;
+    tr.querySelectorAll('[contenteditable]').forEach(cell => {
+      cell.addEventListener('blur', () => {
+        tableData[idx][cell.dataset.field] = cell.innerText.trim();
+        saveTableToStorage();
+      });
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+function addRow() {
+  const maxId = tableData.reduce((m, r) => Math.max(m, parseInt(r.id) || 0), 0);
+  tableData.push({
+    id: String(maxId + 1).padStart(3, '0'),
+    account: document.getElementById('defaultAccount').value || '@Newwish0',
+    status: '待發',
+    text: '',
+    sendable: true
+  });
+  renderTable();
+  saveTableToStorage();
+  showToast('已新增一行');
+}
+
+function deleteRow(idx) {
+  if (confirm('確定刪除這一行？')) {
+    tableData.splice(idx, 1);
+    renderTable();
+    saveTableToStorage();
+  }
+}
+
+function clearTable() {
+  if (confirm('確定清空整個表格？')) {
+    tableData = [];
+    renderTable();
+    saveTableToStorage();
+  }
+}
+
+function loadSampleData() {
+  tableData = JSON.parse(JSON.stringify(SAMPLE_DATA));
+  renderTable();
+  saveTableToStorage();
+  showToast('已載入原示例推文');
+}
+
+function loadRecentTemplates() {
+  tableData = JSON.parse(JSON.stringify(RECENT_TEMPLATES));
+  renderTable();
+  saveTableToStorage();
+  showToast('已載入近期模板');
+}
+
+function applyDefaultAccount() {
+  const acc = document.getElementById('defaultAccount').value.trim() || '@Newwish0';
+  tableData.forEach(r => {
+    if (!r.account || r.account === '@Newwish0' || r.account === '') r.account = acc;
+  });
+  // 同步更新打开主页按钮
+  document.getElementById('openProfileBtn').href = 'https://x.com/' + acc.replace('@','');
+  renderTable();
+  saveTableToStorage();
+  showToast('已應用預設帳號');
+}
+
+// ========== 核心新功能：解析并导入 ==========
+function parseAndImport() {
+  const text = document.getElementById('pasteArea').value.trim();
+  if (!text) {
+    showToast('文本框是空的，請先粘貼推文');
+    return;
+  }
+
+  // 按空行拆分（最准确的方式）
+  let blocks = text.split(/\n\s*\n/).map(b => b.trim()).filter(b => b.length > 0);
+
+  // 如果几乎没有空行，就按单行尝试
+  if (blocks.length <= 1) {
+    blocks = text.split('\n').map(b => b.trim()).filter(b => b.length > 5);
+  }
+
+  if (blocks.length === 0) {
+    showToast('沒有識別到有效推文');
+    return;
+  }
+
+  const acc = document.getElementById('defaultAccount').value.trim() || '@Newwish0';
+  let maxId = tableData.reduce((m, r) => Math.max(m, parseInt(r.id) || 0), 0);
+
+  blocks.forEach(block => {
+    maxId++;
+    tableData.push({
+      id: String(maxId).padStart(3, '0'),
+      account: acc,
+      status: '待發',
+      text: block,
+      sendable: true
+    });
+  });
+
+  renderTable();
+  saveTableToStorage();
+  showToast(`成功導入 ${blocks.length} 條推文`);
+  // 可选：清空文本框
+  // document.getElementById('pasteArea').value = '';
+}
+
+function exportExcel() {
+  const wsData = [
+    ['編號', '帳號', '狀態', '可發', '推文內容'],
+    ...tableData.map(r => [r.id, r.account, r.status, r.sendable ? '是' : '否', r.text])
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '待發數據');
+  XLSX.writeFile(wb, `待發箱_${new Date().toISOString().slice(0,10)}.xlsx`);
+  showToast('Excel 已匯出');
+}
+
+function importExcel(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const data = new Uint8Array(ev.target.result);
+    const wb = XLSX.read(data, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const json = XLSX.utils.sheet_to_json(ws, { header: 1 });
+    if (json.length < 2) { showToast('Excel 內容為空'); return; }
+    tableData = [];
+    for (let i = 1; i < json.length; i++) {
+      const row = json[i];
+      if (!row || !row[4]) continue;
+      tableData.push({
+        id: String(row[0] || i).padStart(3,'0'),
+        account: row[1] || '@Newwish0',
+        status: row[2] || '待發',
+        sendable: row[3] === '是' || row[3] === true || row[3] === 1,
+        text: String(row[4] || '')
+      });
+    }
+    renderTable();
+    saveTableToStorage();
+    showToast(`已匯入 ${tableData.length} 條數據`);
+  };
+  reader.readAsArrayBuffer(file);
+  e.target.value = '';
+}
+
+function loadToOutbox() {
+  const rows = document.querySelectorAll('#tableBody tr');
+  rows.forEach((tr, idx) => {
+    if (!tableData[idx]) return;
+    tableData[idx].id = tr.cells[0].innerText.trim();
+    tableData[idx].account = tr.cells[1].innerText.trim();
+    tableData[idx].status = tr.cells[2].innerText.trim();
+    tableData[idx].text = tr.cells[4].innerText.trim();
+  });
+  outboxData = JSON.parse(JSON.stringify(tableData));
+  localStorage.setItem('outbox_loaded_data', JSON.stringify(outboxData));
+  renderOutbox();
+  showToast(`已載入 ${outboxData.length} 條到待發箱`);
+  window.scrollTo({ top: document.getElementById('queue').offsetTop - 60, behavior: 'smooth' });
+}
+
+function renderOutbox() {
+  const sentIds = getSentIds();
+  const queue = document.getElementById('queue');
+  const empty = document.getElementById('empty');
+  queue.innerHTML = '';
+
+  let pending = 0, sent = 0;
+  outboxData.forEach(d => {
+    if (sentIds.includes(d.id)) sent++;
+    else if (d.sendable) pending++;
+  });
+
+  document.getElementById('stats').innerHTML = `
+    <div class="stat">待發 <strong>${pending}</strong></div>
+    <div class="stat">已發 <strong>${sent}</strong></div>
+    <div class="stat">總計 ${outboxData.length}</div>
+  `;
+
+  let visible = 0;
+  outboxData.forEach(d => {
+    const isSent = sentIds.includes(d.id);
+    if (showMode === 'pending' && (isSent || !d.sendable)) return;
+    visible++;
+
+    const card = document.createElement('div');
+    card.className = 'card' + (isSent ? ' sent' : '');
+    const len = [...(d.text || '')].length;
+
+    card.innerHTML = `
+      <div class="meta">
+        <span class="tag">編號 ${d.id}</span>
+        <span class="tag">${d.account || '@Newwish0'}</span>
+        <span class="tag ${isSent ? 'sent-tag' : (d.sendable ? 'status' : 'drafting')}">
+          ${isSent ? '已發送' : d.status}
+        </span>
+      </div>
+      <div class="text">${esc(d.text)}</div>
+      <div class="char-count ${len > 280 ? 'over' : len > 250 ? 'warn' : ''}">${len} 字</div>
+      <div class="btns" id="btns-${d.id}"></div>
+    `;
+    queue.appendChild(card);
+
+    const btns = card.querySelector(`#btns-${d.id}`);
+    if (!isSent && d.sendable) {
+      btns.innerHTML = `
+        <div class="btn-row">
+          <button class="copy" onclick="copyText(\`${d.text.replace(/`/g,'\\`').replace(/\$/g,'\\$')}\`)">複製全文</button>
+          <a class="open" href="https://x.com/intent/post?text=${encodeURIComponent(d.text)}" target="_blank" rel="noopener">在 X 打開</a>
+        </div>
+        <button class="mark" onclick="markSent('${d.id}')">✓ 標記已發送</button>
+      `;
+    } else if (isSent) {
+      btns.innerHTML = `<button class="unmark" onclick="unmarkSent('${d.id}')">取消標記</button>`;
+    } else {
+      btns.innerHTML = `<button disabled>備稿中</button>`;
+    }
+  });
+
+  empty.style.display = visible === 0 ? 'block' : 'none';
+}
+
+function copyText(t) {
+  navigator.clipboard.writeText(t).then(() => showToast('已複製')).catch(() => showToast('複製失敗'));
+}
+
+function markSent(id) {
+  const ids = getSentIds();
+  if (!ids.includes(id)) {
+    ids.push(id);
+    saveSentIds(ids);
+    showToast('已標記為發送');
+    renderOutbox();
+  }
+}
+
+function unmarkSent(id) {
+  saveSentIds(getSentIds().filter(x => x !== id));
+  showToast('已恢復為待發');
+  renderOutbox();
+}
+
+function resetSent() {
+  if (confirm('確定清除所有「已發送」標記？')) {
+    localStorage.removeItem(STORAGE_SENT);
+    showToast('已重置');
+    renderOutbox();
+  }
+}
+
+// 初始化
+(function init() {
+  try {
+    const saved = localStorage.getItem(STORAGE_TABLE);
+    if (saved) tableData = JSON.parse(saved);
+    else tableData = JSON.parse(JSON.stringify(SAMPLE_DATA));
+  } catch { tableData = JSON.parse(JSON.stringify(SAMPLE_DATA)); }
+  renderTable();
+
+  // 同步主页按钮
+  const acc = document.getElementById('defaultAccount').value || '@Newwish0';
+  document.getElementById('openProfileBtn').href = 'https://x.com/' + acc.replace('@','');
+
+  try {
+    const loaded = localStorage.getItem('outbox_loaded_data');
+    if (loaded) {
+      outboxData = JSON.parse(loaded);
+      renderOutbox();
+    }
+  } catch {}
+})();
+</script>
+</body>
+</html>
