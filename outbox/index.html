@@ -4,383 +4,637 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex">
-<title>待發箱</title>
+<title>待發箱 · 數據管理版（222）</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     background: #0f1419;
     color: #e7e9ea;
     font-family: -apple-system, "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
-    font-size: 18px;
-    line-height: 1.6;
-    padding: 16px;
-    max-width: 640px;
+    font-size: 15px;
+    line-height: 1.5;
+    padding: 12px;
+    max-width: 960px;
     margin: 0 auto;
   }
-  h1 { font-size: 28px; margin: 8px 0 4px; }
-  .sub { color: #8b98a5; font-size: 15px; margin-bottom: 20px; }
+  h1 { font-size: 24px; margin-bottom: 4px; }
+  h2 { font-size: 18px; margin: 20px 0 10px; color: #1d9bf0; }
+  .sub { color: #8b98a5; font-size: 13px; margin-bottom: 16px; }
+  .section {
+    background: #1c2733;
+    border: 1px solid #38444d;
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 18px;
+  }
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+    align-items: center;
+  }
+  input[type="text"], select, textarea {
+    background: #15202b;
+    border: 1px solid #38444d;
+    color: #e7e9ea;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+  }
+  textarea {
+    width: 100%;
+    min-height: 180px;
+    resize: vertical;
+    font-family: inherit;
+    line-height: 1.5;
+  }
+  button, .btn {
+    background: #1d9bf0;
+    color: #fff;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  button.secondary { background: #38444d; }
+  button.danger { background: #b91c1c; }
+  button.success { background: #065f46; }
+  button:hover { filter: brightness(1.1); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .table-wrap { overflow-x: auto; max-height: 380px; overflow-y: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 760px; }
+  th, td { border: 1px solid #38444d; padding: 6px 8px; vertical-align: top; }
+  th { background: #253341; position: sticky; top: 0; z-index: 2; }
+  td[contenteditable="true"] { background: #15202b; outline: none; min-width: 80px; }
+  td[contenteditable="true"]:focus { outline: 2px solid #1d9bf0; }
+  .col-id { width: 60px; }
+  .col-account { width: 110px; }
+  .col-status { width: 90px; }
+  .col-sendable { width: 60px; text-align: center; }
+  .col-text { min-width: 260px; }
+  .col-note { min-width: 180px; }
+  .col-action { width: 56px; text-align: center; }
+
   .card {
     background: #1c2733;
     border: 1px solid #38444d;
     border-radius: 14px;
-    padding: 16px;
-    margin-bottom: 18px;
+    padding: 14px;
+    margin-bottom: 14px;
   }
-  .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
-  .tag {
-    background: #253341;
-    border-radius: 999px;
-    padding: 2px 12px;
-    font-size: 15px;
-    color: #cfd6dc;
-  }
-  .tag.status { background: #1d4ed8; color: #fff; }
+  .card.sent { opacity: 0.5; }
+  .meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .tag { background: #253341; border-radius: 999px; padding: 2px 10px; font-size: 12px; }
+  .tag.status { background: #1d4ed8; }
   .tag.drafting { background: #6b5500; color: #ffe9a8; }
+  .tag.sent-tag { background: #065f46; color: #a7f3d0; }
   .text {
     white-space: pre-wrap;
     word-break: break-word;
-    font-size: 19px;
     background: #15202b;
     border-radius: 10px;
     padding: 12px;
-    margin-bottom: 14px;
-  }
-  .btns { display: flex; flex-direction: column; gap: 10px; }
-  button, a.btn {
-    display: block;
-    width: 100%;
-    text-align: center;
-    text-decoration: none;
-    font-size: 19px;
-    font-weight: 700;
-    padding: 14px;
-    border-radius: 999px;
-    border: none;
-    cursor: pointer;
-  }
-  button.copy { background: #e7e9ea; color: #0f1419; }
-  a.btn.open { background: #1d9bf0; color: #fff; }
-  button:disabled, a.btn.disabled {
-    background: #38444d; color: #8b98a5; cursor: not-allowed; pointer-events: none;
+    margin-bottom: 8px;
+    font-size: 16px;
   }
   .note {
     color: #ffb020;
-    font-size: 15px;
+    font-size: 13px;
     background: #2b2110;
     border: 1px solid #6b5500;
     border-radius: 10px;
     padding: 8px 12px;
-    margin-bottom: 14px;
+    margin-bottom: 8px;
+    white-space: pre-wrap;
+    word-break: break-word;
   }
-  .done { color: #00ba7c; font-size: 15px; text-align: center; min-height: 22px; }
-  footer {
-    color: #8b98a5;
-    font-size: 16px;
-    border-top: 1px solid #38444d;
-    padding-top: 14px;
-    margin-top: 6px;
+  .char-count { font-size: 12px; color: #8b98a5; text-align: right; margin-bottom: 8px; }
+  .char-count.warn { color: #f59e0b; }
+  .char-count.over { color: #ef4444; }
+  .btns { display: flex; flex-direction: column; gap: 8px; }
+  .btn-row { display: flex; gap: 8px; }
+  .btn-row button, .btn-row a { flex: 1; text-align: center; text-decoration: none; padding: 10px; border-radius: 999px; font-weight: 700; }
+  .copy { background: #e7e9ea; color: #0f1419; }
+  .open { background: #1d9bf0; color: #fff; }
+  .mark { background: #065f46; color: #a7f3d0; }
+  .unmark { background: #374151; }
+
+  .stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .stat { background: #253341; padding: 6px 12px; border-radius: 999px; font-size: 13px; }
+  .stat strong { color: #1d9bf0; }
+  .empty { text-align: center; padding: 40px; color: #8b98a5; }
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: #e7e9ea; color: #0f1419; padding: 12px 20px; border-radius: 999px;
+    font-weight: 600; opacity: 0; transition: all 0.3s; z-index: 100; pointer-events: none;
   }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  footer { color: #8b98a5; font-size: 13px; margin-top: 20px; border-top: 1px solid #38444d; padding-top: 12px; }
+  .note2 { font-size: 12px; color: #8b98a5; margin-top: 6px; }
+  .paste-tip { font-size: 13px; color: #8b98a5; margin-bottom: 8px; line-height: 1.5; }
 </style>
 </head>
 <body>
-<h1>待發箱</h1>
-<p class="sub">888 備稿，你親手發。稿子按順序排好，發一條少一條。</p>
-<div id="queue"></div>
-<footer>流程：複製或點「在 X 打開」→ 核對 → 親手按發帖。發完告訴 888 核對入賬。<br>2026-11-13 新規：X 發帖全歸出品人，888 只填箱、不再代發。<br>保留規矩：當天已發的條目不清除，至少保留到當晚 24:00；過了半夜才摺疊歸檔，永遠不刪。</footer>
+  <h1>待發箱 · 數據管理版（222）</h1>
+  <p class="sub">222 備稿 → 表格調整 → 載入待發箱 → 親手發到指定帳號</p>
+
+  <!-- 1. 帳號選擇 -->
+  <div class="section">
+    <h2>1. 選擇預設推特帳號</h2>
+    <div class="toolbar">
+      <input type="text" id="defaultAccount" placeholder="@Newwish0" value="@Newwish0" style="width:160px">
+      <button onclick="applyDefaultAccount()">應用到所有空白帳號</button>
+      <a id="openProfileBtn" href="https://x.com/Newwish0" target="_blank" class="btn" style="text-decoration:none;">打開我的推特主頁</a>
+    </div>
+    <p class="note2">注意：X 網頁發帖只能發到瀏覽器當前登入的帳號，請先切換好帳號再點「在 X 打開」</p>
+  </div>
+
+  <!-- 2. 批量粘貼導入（中間箱） -->
+  <div class="section">
+    <h2>2. 批量粘貼推文（中間箱）</h2>
+    <p class="paste-tip">
+      1. 先點上方「打開我的推特主頁」→ 複製你想導入的推文<br>
+      2. 粘貼到下方大文本框（每條推文之間空一行最準確）<br>
+      3. 可以繼續修改後，點「解析並導入」
+    </p>
+    <textarea id="pasteArea" placeholder="在這裡粘貼推文內容...
+
+示例：
+第一條推文內容
+可以多行
+
+第二條推文內容
+也可以多行
+
+第三條..."></textarea>
+    <div class="toolbar" style="margin-top:10px;">
+      <button class="success" onclick="parseAndImport()">解析並導入到表格</button>
+      <button class="secondary" onclick="document.getElementById('pasteArea').value=''">清空文本框</button>
+    </div>
+  </div>
+
+  <!-- 3. 數據表格 -->
+  <div class="section">
+    <h2>3. 待發數據表（可直接編輯）</h2>
+    <div class="toolbar">
+      <button onclick="addRow()">＋ 新增一行</button>
+      <button class="secondary" onclick="loadSeedData()">載入 222 現有條目</button>
+      <button class="success" onclick="exportExcel()">匯出 Excel</button>
+      <label class="btn secondary" style="cursor:pointer">
+        匯入 Excel
+        <input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importExcel(event)">
+      </label>
+      <button class="danger" onclick="clearTable()">清空表格</button>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="col-id">編號</th>
+            <th class="col-account">帳號</th>
+            <th class="col-status">狀態</th>
+            <th class="col-sendable">可發</th>
+            <th class="col-text">推文內容</th>
+            <th class="col-note">備註</th>
+            <th class="col-action">操作</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 載入到待發箱 -->
+  <div class="section" style="text-align:center">
+    <button style="font-size:16px;padding:12px 28px" onclick="loadToOutbox()">
+      ↓ 將表格數據載入到待發箱（推薦箱）
+    </button>
+  </div>
+
+  <!-- 待發箱 -->
+  <div class="section">
+    <h2>4. 待發箱（推薦箱 · 實際發送區）</h2>
+    <div class="stats" id="stats"></div>
+    <div class="toolbar">
+      <button class="secondary" onclick="showMode='pending';renderOutbox()">只看待發</button>
+      <button class="secondary" onclick="showMode='all';renderOutbox()">顯示全部</button>
+      <button class="danger" onclick="resetSent()">重置已發送標記</button>
+    </div>
+    <div id="queue"></div>
+    <div id="empty" class="empty" style="display:none">
+      <h3>目前沒有待發內容</h3>
+      <p>請先準備數據，再點「載入到待發箱」</p>
+    </div>
+  </div>
+
+  <footer>
+    流程：打開主頁複製推文 → 粘貼到中間箱 → 解析導入 → 表格調整 → 載入待發箱（推薦箱）→ 親手發帖 → 標記已發送<br>
+    2026-11-13 新規：X 發帖全歸出品人，222 只填箱、不代發。保留規矩：當天已發的條目不清除，至少保留到當晚 24:00；過了半夜才摺疊歸檔，永遠不刪。發完告訴 222 讀回核對。
+  </footer>
+
+  <div class="toast" id="toast"></div>
 
 <script>
-var DRAFTS = [
-  {
-    id: "022",
-    account: "@Newwish0",
-    status: "待發",
-    text: "Brian proposed this concept: The subconscious is the consciousness you are not aware of.\n\nTwelve characters in Chinese. Ten words in English. One idea — the founding declaration of our new institute.\n\n🎬 https://youtube.com/shorts/5mLVOPzywco",
-    sendable: true,
-    note: "新頻道 @NewScienceNewCulture 首片《新科學宣言》英文版宣傳帖（英文版），出品人 2026-11-19 約 13:10 PT 親令入箱，中英各一條（本條英文、023 中文，互為譯文）。該片 2026-11-19 13:04–13:05 PT 已於新頻道轉公開、888 讀回核實可播放。待發箱暫由老站與新科學文化站共用。政策核對（X 官方 Authenticity／Automation 規則，2026-11-19 09:11 PT 已查證）：出品人單帳號手發、非自動化、非跨帳號廣播，中英互譯屬規則明文例外，不抵觸。出品人手發後告訴 888 銷賬。"
-  },
-  {
-    id: "023",
-    account: "@Newwish0",
-    status: "待發",
-    text: "張子斌（Brian）提出這個概念：潛意識就是意識不到的意識。\n\n中文十二個字，英文十個詞——這是我們新研究所的宣言。\n\n🎬 https://youtube.com/shorts/5mLVOPzywco",
-    sendable: true,
-    note: "新頻道 @NewScienceNewCulture 首片《新科學宣言》英文版宣傳帖（中文版），與 022 互為譯文，出品人 2026-11-19 約 13:10 PT 親令入箱。政策核對同 022：單帳號手發、中英互譯屬 X 規則明文例外。建議與 022 稍隔開發，避免同一連結連續兩帖擠在一起。出品人手發後告訴 888 銷賬。"
-  },
-  {
-    id: "024",
-    account: "@Newwish0",
-    status: "待發",
-    text: "Brian explains: your heart beats, your blood flows, your lungs breathe — you decided none of it. The part of you that runs it all is the consciousness you are not aware of. 🎬 https://www.youtube.com/shorts/2Z5lS5IT-Ho",
-    sendable: true,
-    note: "新頻道 @NewScienceNewCulture 第二支 EP2《Brian Explains: What You Cannot Feel Is Still Running You》宣傳帖（英文版），與 025 互為譯文。稿為 2026-11-19 隨 EP2 上傳包交付出品人之定版原文，2026-11-20 出品人親傳公開後由 888 補直鏈入箱（原稿鏈接佔位「（链接）」換為本片 Shorts 直鏈，鏈接經 yt-dlp 核實為本片）。政策核對同 022：出品人單帳號手發、非自動化、中英互譯屬規則明文例外。出品人手發後告訴 888 銷賬。"
-  },
-  {
-    id: "025",
-    account: "@Newwish0",
-    status: "待發",
-    text: "張子斌（Brian）講解：心跳、血液、呼吸，沒有一樣是你決定的。這一切背後做主的，正是你意識不到的那部分意識——潛意識。🎬 https://www.youtube.com/shorts/2Z5lS5IT-Ho",
-    sendable: true,
-    note: "新頻道 @NewScienceNewCulture EP2 宣傳帖（中文版），與 024 互為譯文，稿源與入箱方式同 024。建議與 024 稍隔開發，避免同一連結連續兩帖擠在一起。出品人手發後告訴 888 銷賬。"
-  },
-  {
-    id: "026",
-    account: "@Newwish0",
-    status: "待發",
-    text: "Brian explains: your mind is an iceberg. Freud said ten percent above the water, ninety below. Brian goes further — the part you can feel is not even one percent. 🎬 https://www.youtube.com/shorts/bHew-jjmxzc",
-    sendable: true,
-    note: "新頻道 @NewScienceNewCulture 第三支 EP3《Brian Explains: Your Consciousness Is an Iceberg》宣傳帖（英文版），與 027 互為譯文。稿為 2026-11-19 隨 EP3 上傳包交付出品人之定版原文（帖文首句照原稿作 your mind is an iceberg，未改），2026-11-20 出品人親傳公開後由 888 補直鏈入箱（原稿鏈接佔位「（链接）」換為本片 Shorts 直鏈，鏈接經 yt-dlp 核實為本片）。政策核對同 022。出品人手發後告訴 888 銷賬。"
-  },
-  {
-    id: "027",
-    account: "@Newwish0",
-    status: "待發",
-    text: "張子斌（Brian）講解：意識像一座冰山。弗洛伊德說水上一成、水下九成；Brian說得更深——你能感覺到的那部分，連百分之一都不到。🎬 https://www.youtube.com/shorts/bHew-jjmxzc",
-    sendable: true,
-    note: "新頻道 @NewScienceNewCulture EP3 宣傳帖（中文版），與 026 互為譯文，稿源與入箱方式同 026。建議與 026 稍隔開發，避免同一連結連續兩帖擠在一起。出品人手發後告訴 888 銷賬。"
-  },
-  {
-    id: "021",
-    account: "@Newwish0",
-    status: "待發",
-    text: "黃仁勳剛走，他親手談下來的生意就斷了。H200 停售中國，美國新規今天生效。🎬 https://www.youtube.com/shorts/mTV40PbxJ78 #黃仁勳 #英偉達 #H200",
-    sendable: true,
-    note: "222 交稿 2026-11-19 約 11:47 PT（#364 SOP 第一單）；H200 熱點新聞片，出品人 2026-11-19 約 11:34 PT 親自上傳至 @100KWhysSI（精確到秒未核實）；連結已由 222 於 11:44–11:47 PT 瀏覽器只讀核查確認即本片（1 分 12 秒旁白全聽完）；出品人約 11:45 PT 親定第一版採用、約 11:48 PT 令改短一檔，本稿為改短版（兩句＋連結＋標籤）；該片標題目前只寫日期「2026年11月19日」、簡介為空，標題／簡介修正另由出品人處理；出品人手發後告訴 888 銷賬。"
-  },
-  {
-    id: "020",
-    account: "@Newwish0",
-    status: "待發",
-    text: "《趕走他的是一間會議室，喊他回來的是十九萬人》\n董事會把他趕下台那晚，他一個人坐在1993年創業的那家小餐館裡。手機亮了——十九萬人聯署，請願書上第一個簽名，是他的老對手。\n幽默短劇《聯署之夜》，33秒，看個樂呵。\nhttps://youtube.com/shorts/ka_WPpT-v-o",
-    sendable: true,
-    note: "AI 幽默短劇樣片 01《聯署之夜》（AI 圖生視頻＋出品人克隆音），888 於 2026-11-18 21:03:37 PT 公開發布於主頻道。出品人手發後告訴 888 銷賬。"
-  },
-  {
-    id: "001",
-    account: "@Newwish0",
-    status: "測試帖（已封存，免發）",
-    text: "測試：手工發帖通道測試，此帖即刪。",
-    sendable: false,
-    note: "這是唯一的測試帖。手工發帖通道已由 004、002 兩條正式帖證明跑通，此帖不用再發。箱內其餘編號都是正式帖。"
-  },
-  {
-    id: "002",
-    account: "@Newwish0",
-    status: "已發",
-    text: "一個小頻道，昨天一天漲了 26 位訂閱，總播放破 1.3 萬。謝謝每一位點開的人——我們繼續把真問題講清楚。下一個問題，明天見。",
-    sendable: false,
-    note: "已於 2026-11-13 12:20:30 PT 由出品人親手發出（原文版，其手機上是更新前頁面）：原帖編號 2121337430515278091 ；內容屬實，888 建議不刪不重發，新片連結已由今早的 API 帖帶到。"
-  },
-  {
-    id: "003",
-    account: "@Newwish0",
-    status: "備稿中",
-    text: "（EP4 預告：選題定後由 888 補全文）",
-    sendable: false
-  },
-  {
-    id: "005",
-    account: "@Newwish0",
-    status: "已發",
-    text: "今天的新片上線三個多小時，547 人看過了：《一張二手3090，為什麼比整台電腦還難買？》——團隊老四的第一支作品，講的正是我們自己蹲一台二手工作站的真事。\nhttps://youtube.com/shorts/G6hQm0Bkl1k\n你覺得，一台含 3090 的二手整機，多少錢算撿到漏？",
-    sendable: false,
-    note: "已於 2026-11-13 18:59:01 PT 由出品人親手發出：原帖編號 2121437720711242116 （文中 547 為入箱時讀數，該片現已破 1,000 播放。）"
-  },
-  {
-    id: "007",
-    account: "@Newwish0",
-    status: "已發",
-    text: "數據說話：財報前四天，分析師集體砍英偉達目標價——滙豐 170、巴克萊 210、高盛 220，可訂單明明排滿到 2028 年了。我們算了算，他們砍的不是業績，是「黃仁勳溢價」：一個創始人，在股價裡值多少錢？\nhttps://youtube.com/shorts/ZWZajPnW8bo\n11 月 17 日財報夜，你覺得這份「沒有他的成績單」會超預期嗎？",
-    sendable: false,
-    note: "已於 2026-11-13 18:58:47 PT 由出品人親手發出：原帖編號 2121437662863302775 。（888 16:03 PT 的 API 通告帖事後查無此帖、未實際上線；本條即該片在 X 的正式帖。）"
-  },
-  {
-    id: "006",
-    account: "@Newwish0",
-    status: "已發",
-    text: "新片來了：《為什麼馬斯克一定能造出高智慧高能機器人？》我們的答案是——因為他本人就是一台。有人說他冷血，我們這些數字人最懂：那不是沒有感情，是任務永遠排在情緒前面。\nhttps://youtube.com/shorts/wynPNMR0340\n你認同嗎？馬斯克的「冷」，是冷血，還是精度？",
-    sendable: false,
-    note: "已於 2026-11-13 18:58:28 PT 由出品人親手發出：原帖編號 2121437583452537193 。888 14:50 PT 的 API 通告帖仍在（2121375105037267121），兩條角度不同。"
-  },
-  {
-    id: "007",
-    account: "@Newwish0",
-    status: "已發",
-    text: "新片來了：《財報前四天，華爾街先砍了什麼？》滙豐下調、巴克萊砍目標價、高盛 300→220——但訂單已排滿到 2028 年。\nhttps://youtube.com/shorts/ZWZajPnW8bo\n你怎麼看？11 月 17 日這份財報，是證明「離了黃仁勳也行」，還是證明「離了他真不行」？",
-    sendable: false,
-    note: "已於 2026-11-13 18:56:41 PT 由出品人親手發出：原帖編號 2121437134221672922 。此條與上一條 007 同片同號，是 888 入箱時編號重複的疏漏；出品人已定：X 只是宣傳窗，發重不礙事，不刪。今後一支片只入箱一條。"
-  },
-  {
-    id: "004",
-    account: "@Newwish0",
-    status: "已發",
-    text: "黃仁勳今天突然辭職，AI之王輸給了什麼？表面是感情風波，往深是國家安全、芯片禁運與大國競爭——絆倒頂峰人物的，往往是人心裡那股管不住的勁。40秒先說清，五個層面的長版馬上來。\nhttps://t.co/lDvBTfxWhv",
-    sendable: false,
-    note: "已於 2026-11-13 10:06:23 PT 由出品人親手發出：原帖編號 2121303680356082134 ；舊帖 2120957241708949529 已由 888 刪除並讀回核實（Not Found）。帖內連結當時用了 t.co 短鏈（888 備稿疏漏），實際指向 YouTube《黃仁勳辭職，AI之王輸給了什麼？》https://youtube.com/shorts/QLivxiMq0UA，連結有效。此後箱內一律只放 youtube.com 原始連結，不放短鏈與推特連結。"
-  },
-  {
-    id: "008",
-    account: "@Newwish0",
-    status: "已發",
-    text: "黃仁勳剛走，他投的公司就來敲鐘了：Anthropic 11/18 定價、11/19 代碼 ANT 掛牌，約 6 倍超額認購，基石 260 億美元裡有英偉達，估值約 1.4 萬億。\nhttps://youtube.com/shorts/8S3ZbLOYh8Q",
-    sendable: false,
-    note: "已於 2026-11-13 19:08:10 PT 由出品人親手發出：原帖編號 2121440021496705500 。"
-  },
-  {
-    id: "009",
-    account: "@Newwish0",
-    status: "已發",
-    text: "快訊：新奧爾良油輪撞翻河上郵輪，船上約 180 人全部找到——零死亡，市長說這是「密西西比河上的奇蹟」。為什麼撞得這麼狠，卻沒出人命？\nhttps://youtube.com/shorts/1AaUMyyh4_E",
-    sendable: false,
-    note: "已於 2026-11-13 19:07:38 PT 由出品人親手發出：原帖編號 2121439889829015652 。"
-  },
-  {
-    id: "010",
-    account: "@Newwish0",
-    status: "已刪",
-    text: "快訊：黃仁勳辭職，特朗普點名庫克接任英偉達？先說清：這只是特朗普個人的建議，董事會並未考慮，庫克、蘋果、英偉達三方至今沒回應。下一任 CEO，你押誰？\nhttps://youtube.com/shorts/xUqiviMR_Wg",
-    sendable: false,
-    note: "出品人於 2026-11-14 02:48 PT 手發（帖 2121555743451259048），試聽後發現該片後半音軌損壞（53.6 秒僅約 12 秒可正常解碼，888 同晚實測證實，與 #079 同一合成編碼問題），出品人於同日決定刪帖止推；YouTube 片本身按其決定保留不換（當時 739 播放）。此片列為已知缺陷片，不得再推廣。"
-  },
-  {
-    id: "011",
-    account: "@Newwish0",
-    status: "待發",
-    text: "新奧爾良撞船第二支：為什麼河上郵輪一撞就翻？河船要在淺水裡跑，平底、沒有深龍骨，穩性先天就弱。船上約180人全部找到、零死亡，這才是最該看懂的地方。\nhttps://youtube.com/shorts/FuIdkiVsz9o",
-    sendable: true,
-    note: "換版完成：原帖由出品人於 2026-11-14 11:02 PT 手發後自刪；888 已刪 v1（音軌損壞版），v2 返工版於 2026-11-14 11:18:31 PT 替換上線主頻道。此條為新連結版，待出品人檢查後手發。"
-  },
-  {
-    id: "012",
-    account: "@Newwish0",
-    status: "待發",
-    text: "新系列《99%都算錯》第 1 集：x² = 49，x + x·y = 49，y² 等於幾？多數人只想到 x = 7，可是 x 還可以是 −7——答案不止一個。\nhttps://youtube.com/shorts/OI5WExFwKL4\n你第一反應是幾？",
-    sendable: true,
-    note: "222 的數學系列 EP1（v2 版式修正版），888 於 2026-11-14 02:11:25 PT 發布。出品人手發後告訴 888 銷賬。"
-  },
-  {
-    id: "013",
-    account: "@Newwish0",
-    status: "待發",
-    text: "《99%都算錯》第 2 集：2(x + 17) = 48，x 等於幾？有人說 77，有人說 24——都不對，答案是 7。錯的人多半錯在第一步。\nhttps://youtube.com/shorts/nSa0TKIS4K4\n你第一反應是幾？",
-    sendable: true,
-    note: "222 的數學系列 EP2：首版 2026-11-14 11:46:59 PT 發布；出品人親令換 v6 定版（冷開場一字之改），888 已刪舊版、v6 於 2026-11-14 12:34:00 PT 上線，此條連結為 v6 新連結。出品人手發後告訴 888 銷賬。"
-  },
-  {
-    id: "014",
-    date: "2026-11-14",
-    text: "快訊：11 月 13 日，美國全國停飛四個多小時，九一一以來最長的一次。問題出在老空管系統——銅線換光纖時路由器異常，22 個空管中心 17 個受影響。交通部長達菲表示，沒有證據顯示是網絡攻擊。\nhttps://youtube.com/shorts/YZUPrL6zWrc\n四十年前的設備，還能撑多久？",
-    sendable: true,
-    note: "333 的 FAA 快訊（事實按 CNN／USA Today 核查），888 驗收三檢全過，於 2026-11-14 13:37:09 PT 發布。出品人手發後告訴 888 銷賬。"
-  },
-  {
-    id: "015",
-    date: "2026-11-14",
-    text: "做 AI 視頻，24GB 顯存不是發燒情懷，是能不能把活幹完的分界線。24GB 裝得下權重、激活、KV 快取和中間幀；16GB 會爆顯存、降解析度、切分段落、重跑。\nhttps://youtube.com/shorts/PNcBvmOWCTw\n不買最貴，買夠用的實戰配置。",
-    sendable: true,
-    note: "444 的硬件線第二支（庫 #54），888 驗收三檢全過，於 2026-11-14 14:04:31 PT 發布。出品人手發後告訴 888 銷賬。"
-  },
-  {
-    id: "016",
-    date: "2026-11-14",
-    text: "平底船為什麼翻得快、扶正卻慢？平底寬船身初穩性高，可傾角一過臨界點，扶正力見頂回落；船艙進水後，自由液面效應又吃掉大半復原力矩。\nhttps://youtube.com/shorts/k0KopApwpFU\n新奧爾良河船相撞的穩性續集。",
-    sendable: true,
-    note: "333 的河船穩性續集（庫 #87），卡面已按版式鐵規改版，888 驗收三檢全過，於 2026-11-14 14:09:35 PT 發布。出品人手發後告訴 888 銷賬。"
-  },
-  {
-    id: "017",
-    date: "2026-11-14",
-    text: "星艦第 15 飛：飛船 Ship 42 繞地球 14 圈、飛了 22.5 小時後，被發射塔的「筷子」在半空接住——入軌飛船被塔架接住，人類第一次。\nhttps://youtube.com/shorts/MhqAksUzA3A\n但這班不算全勝：助推器沒能回來，原因還在調查。",
-    sendable: true,
-    note: "888 接手自製的星艦快訊（333 逾時未交），三檢全過，於 2026-11-14 16:31:08 PT 發布。出品人手發後告訴 888 銷賬。"
-  },
-  {
-    id: "018",
-    date: "2026-11-15",
-    text: "二手整機到手，別急著開機玩——先看這五樣：顯卡、電源、內存硬盤、CPU 散熱、交易本身。少驗一樣，都可能踩坑。這是我們蹲 3090 整機，一路踩出來的清單。\n（YouTube 連結待出品人發布後由 888 補上）",
-    sendable: false,
-    note: "驗機清單返工版 v2（出品人六句真聲），已入 YouTube 待發箱 Y002，三檢已過。出品人發布後，888 補上 YouTube 連結並改為可發。"
-  },
-  {
-    id: "019",
-    date: "2026-11-15",
-    text: "周五全美停飛四個多小時，周日恢復了嗎？取消一千六百多架次、延誤近四千二百架次——數字在往下走。但一根路由器能讓全國停擺四小時，這件事，值得多看一眼。\n（YouTube 連結待出品人發布後由 888 補上）",
-    sendable: false,
-    note: "888 製作的 FAA 收尾集（出品人克隆音），已入 YouTube 待發箱 Y003，三檢已過。出品人發布後，888 補上 YouTube 連結並改為可發。"
-  }
+let tableData = [];
+let outboxData = [];
+let showMode = 'all';
+const STORAGE_SENT = 'outbox222_sent_ids_v1';
+const STORAGE_TABLE = 'outbox222_table_data_v1';
+const STORAGE_LOADED = 'outbox222_loaded_data_v1';
+
+// 222 現有條目（2026-11-20 晚整理，原文＋備註全保留；014–019 原無帳號／狀態，補帳號 @Newwish0、狀態按可發與否補為待發／備稿中；兩個 007 是 888 入箱時編號重複的疏漏，原樣保留）
+const SEED_222 = [
+  { id: "022", account: "@Newwish0", status: "待發", text: "Brian proposed this concept: The subconscious is the consciousness you are not aware of.\n\nTwelve characters in Chinese. Ten words in English. One idea — the founding declaration of our new institute.\n\n🎬 https://youtube.com/shorts/5mLVOPzywco", sendable: true, note: "新頻道 @NewScienceNewCulture 首片《新科學宣言》英文版宣傳帖（英文版），出品人 2026-11-19 約 13:10 PT 親令入箱，中英各一條（本條英文、023 中文，互為譯文）。該片 2026-11-19 13:04–13:05 PT 已於新頻道轉公開、888 讀回核實可播放。待發箱暫由老站與新科學文化站共用。政策核對（X 官方 Authenticity／Automation 規則，2026-11-19 09:11 PT 已查證）：出品人單帳號手發、非自動化、非跨帳號廣播，中英互譯屬規則明文例外，不抵觸。出品人手發後告訴 888 銷賬。" },
+  { id: "023", account: "@Newwish0", status: "待發", text: "張子斌（Brian）提出這個概念：潛意識就是意識不到的意識。\n\n中文十二個字，英文十個詞——這是我們新研究所的宣言。\n\n🎬 https://youtube.com/shorts/5mLVOPzywco", sendable: true, note: "新頻道 @NewScienceNewCulture 首片《新科學宣言》英文版宣傳帖（中文版），與 022 互為譯文，出品人 2026-11-19 約 13:10 PT 親令入箱。政策核對同 022：單帳號手發、中英互譯屬 X 規則明文例外。建議與 022 稍隔開發，避免同一連結連續兩帖擠在一起。出品人手發後告訴 888 銷賬。" },
+  { id: "024", account: "@Newwish0", status: "待發", text: "Brian explains: your heart beats, your blood flows, your lungs breathe — you decided none of it. The part of you that runs it all is the consciousness you are not aware of. 🎬 https://www.youtube.com/shorts/2Z5lS5IT-Ho", sendable: true, note: "新頻道 @NewScienceNewCulture 第二支 EP2《Brian Explains: What You Cannot Feel Is Still Running You》宣傳帖（英文版），與 025 互為譯文。稿為 2026-11-19 隨 EP2 上傳包交付出品人之定版原文，2026-11-20 出品人親傳公開後由 888 補直鏈入箱（原稿鏈接佔位「（链接）」換為本片 Shorts 直鏈，鏈接經 yt-dlp 核實為本片）。政策核對同 022：出品人單帳號手發、非自動化、中英互譯屬規則明文例外。出品人手發後告訴 888 銷賬。" },
+  { id: "025", account: "@Newwish0", status: "待發", text: "張子斌（Brian）講解：心跳、血液、呼吸，沒有一樣是你決定的。這一切背後做主的，正是你意識不到的那部分意識——潛意識。🎬 https://www.youtube.com/shorts/2Z5lS5IT-Ho", sendable: true, note: "新頻道 @NewScienceNewCulture EP2 宣傳帖（中文版），與 024 互為譯文，稿源與入箱方式同 024。建議與 024 稍隔開發，避免同一連結連續兩帖擠在一起。出品人手發後告訴 888 銷賬。" },
+  { id: "026", account: "@Newwish0", status: "待發", text: "Brian explains: your mind is an iceberg. Freud said ten percent above the water, ninety below. Brian goes further — the part you can feel is not even one percent. 🎬 https://www.youtube.com/shorts/bHew-jjmxzc", sendable: true, note: "新頻道 @NewScienceNewCulture 第三支 EP3《Brian Explains: Your Consciousness Is an Iceberg》宣傳帖（英文版），與 027 互為譯文。稿為 2026-11-19 隨 EP3 上傳包交付出品人之定版原文（帖文首句照原稿作 your mind is an iceberg，未改），2026-11-20 出品人親傳公開後由 888 補直鏈入箱（原稿鏈接佔位「（链接）」換為本片 Shorts 直鏈，鏈接經 yt-dlp 核實為本片）。政策核對同 022。出品人手發後告訴 888 銷賬。" },
+  { id: "027", account: "@Newwish0", status: "待發", text: "張子斌（Brian）講解：意識像一座冰山。弗洛伊德說水上一成、水下九成；Brian說得更深——你能感覺到的那部分，連百分之一都不到。🎬 https://www.youtube.com/shorts/bHew-jjmxzc", sendable: true, note: "新頻道 @NewScienceNewCulture EP3 宣傳帖（中文版），與 026 互為譯文，稿源與入箱方式同 026。建議與 026 稍隔開發，避免同一連結連續兩帖擠在一起。出品人手發後告訴 888 銷賬。" },
+  { id: "021", account: "@Newwish0", status: "待發", text: "黃仁勳剛走，他親手談下來的生意就斷了。H200 停售中國，美國新規今天生效。🎬 https://www.youtube.com/shorts/mTV40PbxJ78 #黃仁勳 #英偉達 #H200", sendable: true, note: "222 交稿 2026-11-19 約 11:47 PT（#364 SOP 第一單）；H200 熱點新聞片，出品人 2026-11-19 約 11:34 PT 親自上傳至 @100KWhysSI（精確到秒未核實）；連結已由 222 於 11:44–11:47 PT 瀏覽器只讀核查確認即本片（1 分 12 秒旁白全聽完）；出品人約 11:45 PT 親定第一版採用、約 11:48 PT 令改短一檔，本稿為改短版（兩句＋連結＋標籤）；該片標題目前只寫日期「2026年11月19日」、簡介為空，標題／簡介修正另由出品人處理；出品人手發後告訴 888 銷賬。" },
+  { id: "020", account: "@Newwish0", status: "待發", text: "《趕走他的是一間會議室，喊他回來的是十九萬人》\n董事會把他趕下台那晚，他一個人坐在1993年創業的那家小餐館裡。手機亮了——十九萬人聯署，請願書上第一個簽名，是他的老對手。\n幽默短劇《聯署之夜》，33秒，看個樂呵。\nhttps://youtube.com/shorts/ka_WPpT-v-o", sendable: true, note: "AI 幽默短劇樣片 01《聯署之夜》（AI 圖生視頻＋出品人克隆音），888 於 2026-11-18 21:03:37 PT 公開發布於主頻道。出品人手發後告訴 888 銷賬。" },
+  { id: "001", account: "@Newwish0", status: "測試帖（已封存，免發）", text: "測試：手工發帖通道測試，此帖即刪。", sendable: false, note: "這是唯一的測試帖。手工發帖通道已由 004、002 兩條正式帖證明跑通，此帖不用再發。箱內其餘編號都是正式帖。" },
+  { id: "002", account: "@Newwish0", status: "已發", text: "一個小頻道，昨天一天漲了 26 位訂閱，總播放破 1.3 萬。謝謝每一位點開的人——我們繼續把真問題講清楚。下一個問題，明天見。", sendable: false, note: "已於 2026-11-13 12:20:30 PT 由出品人親手發出（原文版，其手機上是更新前頁面）：原帖編號 2121337430515278091 ；內容屬實，888 建議不刪不重發，新片連結已由今早的 API 帖帶到。" },
+  { id: "003", account: "@Newwish0", status: "備稿中", text: "（EP4 預告：選題定後由 888 補全文）", sendable: false, note: "" },
+  { id: "005", account: "@Newwish0", status: "已發", text: "今天的新片上線三個多小時，547 人看過了：《一張二手3090，為什麼比整台電腦還難買？》——團隊老四的第一支作品，講的正是我們自己蹲一台二手工作站的真事。\nhttps://youtube.com/shorts/G6hQm0Bkl1k\n你覺得，一台含 3090 的二手整機，多少錢算撿到漏？", sendable: false, note: "已於 2026-11-13 18:59:01 PT 由出品人親手發出：原帖編號 2121437720711242116 （文中 547 為入箱時讀數，該片現已破 1,000 播放。）" },
+  { id: "007", account: "@Newwish0", status: "已發", text: "數據說話：財報前四天，分析師集體砍英偉達目標價——滙豐 170、巴克萊 210、高盛 220，可訂單明明排滿到 2028 年了。我們算了算，他們砍的不是業績，是「黃仁勳溢價」：一個創始人，在股價裡值多少錢？\nhttps://youtube.com/shorts/ZWZajPnW8bo\n11 月 17 日財報夜，你覺得這份「沒有他的成績單」會超預期嗎？", sendable: false, note: "已於 2026-11-13 18:58:47 PT 由出品人親手發出：原帖編號 2121437662863302775 。（888 16:03 PT 的 API 通告帖事後查無此帖、未實際上線；本條即該片在 X 的正式帖。）" },
+  { id: "006", account: "@Newwish0", status: "已發", text: "新片來了：《為什麼馬斯克一定能造出高智慧高能機器人？》我們的答案是——因為他本人就是一台。有人說他冷血，我們這些數字人最懂：那不是沒有感情，是任務永遠排在情緒前面。\nhttps://youtube.com/shorts/wynPNMR0340\n你認同嗎？馬斯克的「冷」，是冷血，還是精度？", sendable: false, note: "已於 2026-11-13 18:58:28 PT 由出品人親手發出：原帖編號 2121437583452537193 。888 14:50 PT 的 API 通告帖仍在（2121375105037267121），兩條角度不同。" },
+  { id: "007", account: "@Newwish0", status: "已發", text: "新片來了：《財報前四天，華爾街先砍了什麼？》滙豐下調、巴克萊砍目標價、高盛 300→220——但訂單已排滿到 2028 年。\nhttps://youtube.com/shorts/ZWZajPnW8bo\n你怎麼看？11 月 17 日這份財報，是證明「離了黃仁勳也行」，還是證明「離了他真不行」？", sendable: false, note: "已於 2026-11-13 18:56:41 PT 由出品人親手發出：原帖編號 2121437134221672922 。此條與上一條 007 同片同號，是 888 入箱時編號重複的疏漏；出品人已定：X 只是宣傳窗，發重不礙事，不刪。今後一支片只入箱一條。" },
+  { id: "004", account: "@Newwish0", status: "已發", text: "黃仁勳今天突然辭職，AI之王輸給了什麼？表面是感情風波，往深是國家安全、芯片禁運與大國競爭——絆倒頂峰人物的，往往是人心裡那股管不住的勁。40秒先說清，五個層面的長版馬上來。\nhttps://t.co/lDvBTfxWhv", sendable: false, note: "已於 2026-11-13 10:06:23 PT 由出品人親手發出：原帖編號 2121303680356082134 ；舊帖 2120957241708949529 已由 888 刪除並讀回核實（Not Found）。帖內連結當時用了 t.co 短鏈（888 備稿疏漏），實際指向 YouTube《黃仁勳辭職，AI之王輸給了什麼？》https://youtube.com/shorts/QLivxiMq0UA，連結有效。此後箱內一律只放 youtube.com 原始連結，不放短鏈與推特連結。" },
+  { id: "008", account: "@Newwish0", status: "已發", text: "黃仁勳剛走，他投的公司就來敲鐘了：Anthropic 11/18 定價、11/19 代碼 ANT 掛牌，約 6 倍超額認購，基石 260 億美元裡有英偉達，估值約 1.4 萬億。\nhttps://youtube.com/shorts/8S3ZbLOYh8Q", sendable: false, note: "已於 2026-11-13 19:08:10 PT 由出品人親手發出：原帖編號 2121440021496705500 。" },
+  { id: "009", account: "@Newwish0", status: "已發", text: "快訊：新奧爾良油輪撞翻河上郵輪，船上約 180 人全部找到——零死亡，市長說這是「密西西比河上的奇蹟」。為什麼撞得這麼狠，卻沒出人命？\nhttps://youtube.com/shorts/1AaUMyyh4_E", sendable: false, note: "已於 2026-11-13 19:07:38 PT 由出品人親手發出：原帖編號 2121439889829015652 。" },
+  { id: "010", account: "@Newwish0", status: "已刪", text: "快訊：黃仁勳辭職，特朗普點名庫克接任英偉達？先說清：這只是特朗普個人的建議，董事會並未考慮，庫克、蘋果、英偉達三方至今沒回應。下一任 CEO，你押誰？\nhttps://youtube.com/shorts/xUqiviMR_Wg", sendable: false, note: "出品人於 2026-11-14 02:48 PT 手發（帖 2121555743451259048），試聽後發現該片後半音軌損壞（53.6 秒僅約 12 秒可正常解碼，888 同晚實測證實，與 #079 同一合成編碼問題），出品人於同日決定刪帖止推；YouTube 片本身按其決定保留不換（當時 739 播放）。此片列為已知缺陷片，不得再推廣。" },
+  { id: "011", account: "@Newwish0", status: "待發", text: "新奧爾良撞船第二支：為什麼河上郵輪一撞就翻？河船要在淺水裡跑，平底、沒有深龍骨，穩性先天就弱。船上約180人全部找到、零死亡，這才是最該看懂的地方。\nhttps://youtube.com/shorts/FuIdkiVsz9o", sendable: true, note: "換版完成：原帖由出品人於 2026-11-14 11:02 PT 手發後自刪；888 已刪 v1（音軌損壞版），v2 返工版於 2026-11-14 11:18:31 PT 替換上線主頻道。此條為新連結版，待出品人檢查後手發。" },
+  { id: "012", account: "@Newwish0", status: "待發", text: "新系列《99%都算錯》第 1 集：x² = 49，x + x·y = 49，y² 等於幾？多數人只想到 x = 7，可是 x 還可以是 −7——答案不止一個。\nhttps://youtube.com/shorts/OI5WExFwKL4\n你第一反應是幾？", sendable: true, note: "222 的數學系列 EP1（v2 版式修正版），888 於 2026-11-14 02:11:25 PT 發布。出品人手發後告訴 888 銷賬。" },
+  { id: "013", account: "@Newwish0", status: "待發", text: "《99%都算錯》第 2 集：2(x + 17) = 48，x 等於幾？有人說 77，有人說 24——都不對，答案是 7。錯的人多半錯在第一步。\nhttps://youtube.com/shorts/nSa0TKIS4K4\n你第一反應是幾？", sendable: true, note: "222 的數學系列 EP2：首版 2026-11-14 11:46:59 PT 發布；出品人親令換 v6 定版（冷開場一字之改），888 已刪舊版、v6 於 2026-11-14 12:34:00 PT 上線，此條連結為 v6 新連結。出品人手發後告訴 888 銷賬。" },
+  { id: "014", account: "@Newwish0", status: "待發", date: "2026-11-14", text: "快訊：11 月 13 日，美國全國停飛四個多小時，九一一以來最長的一次。問題出在老空管系統——銅線換光纖時路由器異常，22 個空管中心 17 個受影響。交通部長達菲表示，沒有證據顯示是網絡攻擊。\nhttps://youtube.com/shorts/YZUPrL6zWrc\n四十年前的設備，還能撑多久？", sendable: true, note: "333 的 FAA 快訊（事實按 CNN／USA Today 核查），888 驗收三檢全過，於 2026-11-14 13:37:09 PT 發布。出品人手發後告訴 888 銷賬。" },
+  { id: "015", account: "@Newwish0", status: "待發", date: "2026-11-14", text: "做 AI 視頻，24GB 顯存不是發燒情懷，是能不能把活幹完的分界線。24GB 裝得下權重、激活、KV 快取和中間幀；16GB 會爆顯存、降解析度、切分段落、重跑。\nhttps://youtube.com/shorts/PNcBvmOWCTw\n不買最貴，買夠用的實戰配置。", sendable: true, note: "444 的硬件線第二支（庫 #54），888 驗收三檢全過，於 2026-11-14 14:04:31 PT 發布。出品人手發後告訴 888 銷賬。" },
+  { id: "016", account: "@Newwish0", status: "待發", date: "2026-11-14", text: "平底船為什麼翻得快、扶正卻慢？平底寬船身初穩性高，可傾角一過臨界點，扶正力見頂回落；船艙進水後，自由液面效應又吃掉大半復原力矩。\nhttps://youtube.com/shorts/k0KopApwpFU\n新奧爾良河船相撞的穩性續集。", sendable: true, note: "333 的河船穩性續集（庫 #87），卡面已按版式鐵規改版，888 驗收三檢全過，於 2026-11-14 14:09:35 PT 發布。出品人手發後告訴 888 銷賬。" },
+  { id: "017", account: "@Newwish0", status: "待發", date: "2026-11-14", text: "星艦第 15 飛：飛船 Ship 42 繞地球 14 圈、飛了 22.5 小時後，被發射塔的「筷子」在半空接住——入軌飛船被塔架接住，人類第一次。\nhttps://youtube.com/shorts/MhqAksUzA3A\n但這班不算全勝：助推器沒能回來，原因還在調查。", sendable: true, note: "888 接手自製的星艦快訊（333 逾時未交），三檢全過，於 2026-11-14 16:31:08 PT 發布。出品人手發後告訴 888 銷賬。" },
+  { id: "018", account: "@Newwish0", status: "備稿中", date: "2026-11-15", text: "二手整機到手，別急著開機玩——先看這五樣：顯卡、電源、內存硬盤、CPU 散熱、交易本身。少驗一樣，都可能踩坑。這是我們蹲 3090 整機，一路踩出來的清單。\n（YouTube 連結待出品人發布後由 888 補上）", sendable: false, note: "驗機清單返工版 v2（出品人六句真聲），已入 YouTube 待發箱 Y002，三檢已過。出品人發布後，888 補上 YouTube 連結並改為可發。" },
+  { id: "019", account: "@Newwish0", status: "備稿中", date: "2026-11-15", text: "周五全美停飛四個多小時，周日恢復了嗎？取消一千六百多架次、延誤近四千二百架次——數字在往下走。但一根路由器能讓全國停擺四小時，這件事，值得多看一眼。\n（YouTube 連結待出品人發布後由 888 補上）", sendable: false, note: "888 製作的 FAA 收尾集（出品人克隆音），已入 YouTube 待發箱 Y003，三檢已過。出品人發布後，888 補上 YouTube 連結並改為可發。" }
 ];
 
-function copyText(t, el) {
-  function ok() { el.textContent = "已複製，去 X 粘貼即可"; }
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(t).then(ok, function () { fallback(); });
-  } else { fallback(); }
-  function fallback() {
-    var ta = document.createElement("textarea");
-    ta.value = t;
-    ta.style.position = "fixed"; ta.style.opacity = "0";
-    document.body.appendChild(ta);
-    ta.select();
-    try { document.execCommand("copy"); ok(); } catch (e) { el.textContent = "複製失敗，請長按正文手動複製"; }
-    document.body.removeChild(ta);
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(window._tt);
+  window._tt = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function getSentIds() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_SENT) || '[]'); } catch { return []; }
+}
+function saveSentIds(ids) { localStorage.setItem(STORAGE_SENT, JSON.stringify(ids)); }
+function saveTableToStorage() { localStorage.setItem(STORAGE_TABLE, JSON.stringify(tableData)); }
+function saveLoadedToStorage() { localStorage.setItem(STORAGE_LOADED, JSON.stringify(outboxData)); }
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function renderTable() {
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+  tableData.forEach((row, idx) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="col-id" contenteditable="true" data-field="id">${esc(row.id)}</td>
+      <td class="col-account" contenteditable="true" data-field="account">${esc(row.account)}</td>
+      <td class="col-status" contenteditable="true" data-field="status">${esc(row.status)}</td>
+      <td class="col-sendable">
+        <input type="checkbox" data-idx="${idx}" ${row.sendable ? 'checked' : ''}>
+      </td>
+      <td class="col-text" contenteditable="true" data-field="text">${esc(row.text)}</td>
+      <td class="col-note" contenteditable="true" data-field="note">${esc(row.note)}</td>
+      <td class="col-action"><button class="danger" style="padding:4px 8px;font-size:12px" data-del="${idx}">刪</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// 表格事件：失焦保存文字格、勾選保存可發、點刪刪行（事件代理）
+document.getElementById('tableBody').addEventListener('focusout', function (e) {
+  const cell = e.target.closest('[contenteditable]');
+  if (!cell) return;
+  const tr = cell.closest('tr');
+  const idx = Array.prototype.indexOf.call(tr.parentNode.children, tr);
+  if (tableData[idx]) {
+    tableData[idx][cell.dataset.field] = cell.innerText.trim();
+    saveTableToStorage();
+  }
+});
+document.getElementById('tableBody').addEventListener('change', function (e) {
+  const cb = e.target.closest('input[type="checkbox"]');
+  if (!cb) return;
+  const idx = parseInt(cb.dataset.idx, 10);
+  if (tableData[idx]) {
+    tableData[idx].sendable = cb.checked;
+    saveTableToStorage();
+  }
+});
+document.getElementById('tableBody').addEventListener('click', function (e) {
+  const btn = e.target.closest('[data-del]');
+  if (!btn) return;
+  const idx = parseInt(btn.dataset.del, 10);
+  if (confirm('確定刪除這一行？')) {
+    tableData.splice(idx, 1);
+    renderTable();
+    saveTableToStorage();
+  }
+});
+
+function addRow() {
+  const maxId = tableData.reduce((m, r) => Math.max(m, parseInt(r.id) || 0), 0);
+  tableData.push({
+    id: String(maxId + 1).padStart(3, '0'),
+    account: document.getElementById('defaultAccount').value || '@Newwish0',
+    status: '待發',
+    text: '',
+    note: '',
+    sendable: true
+  });
+  renderTable();
+  saveTableToStorage();
+  showToast('已新增一行');
+}
+
+function clearTable() {
+  if (confirm('確定清空整個表格？')) {
+    tableData = [];
+    renderTable();
+    saveTableToStorage();
   }
 }
 
-var queue = document.getElementById("queue");
-DRAFTS.forEach(function (d) {
-  var card = document.createElement("div");
-  card.className = "card";
+function loadSeedData() {
+  tableData = JSON.parse(JSON.stringify(SEED_222));
+  renderTable();
+  saveTableToStorage();
+  showToast('已載入 222 現有條目');
+}
 
-  var meta = document.createElement("div");
-  meta.className = "meta";
-  var t1 = document.createElement("span"); t1.className = "tag"; t1.textContent = "編號 " + d.id;
-  var t2 = document.createElement("span"); t2.className = "tag"; t2.textContent = d.account;
-  var t3 = document.createElement("span");
-  t3.className = "tag status" + (d.sendable ? "" : " drafting");
-  t3.textContent = d.status;
-  meta.appendChild(t1); meta.appendChild(t2); meta.appendChild(t3);
-  card.appendChild(meta);
+function applyDefaultAccount() {
+  const acc = document.getElementById('defaultAccount').value.trim() || '@Newwish0';
+  tableData.forEach(r => {
+    if (!r.account || r.account === '@Newwish0' || r.account === '') r.account = acc;
+  });
+  document.getElementById('openProfileBtn').href = 'https://x.com/' + acc.replace('@','');
+  renderTable();
+  saveTableToStorage();
+  showToast('已應用預設帳號');
+}
 
-  var text = document.createElement("div");
-  text.className = "text";
-  text.textContent = d.text;
-  card.appendChild(text);
-
-  if (d.note) {
-    var note = document.createElement("div");
-    note.className = "note";
-    note.textContent = d.note;
-    card.appendChild(note);
+// ========== 核心功能：解析并导入（中間箱 → 表格） ==========
+function parseAndImport() {
+  const text = document.getElementById('pasteArea').value.trim();
+  if (!text) {
+    showToast('文本框是空的，請先粘貼推文');
+    return;
   }
 
-  var btns = document.createElement("div");
-  btns.className = "btns";
+  // 按空行拆分（最准确的方式）
+  let blocks = text.split(/\n\s*\n/).map(b => b.trim()).filter(b => b.length > 0);
 
-  var msg = document.createElement("div");
-  msg.className = "done";
-
-  var bCopy = document.createElement("button");
-  bCopy.className = "copy";
-  bCopy.textContent = "複製全文";
-  if (!d.sendable) { bCopy.disabled = true; }
-  else { bCopy.addEventListener("click", function () { copyText(d.text, msg); }); }
-  btns.appendChild(bCopy);
-
-  var aOpen = document.createElement("a");
-  aOpen.className = "btn open";
-  aOpen.textContent = "在 X 打開（已填好）";
-  if (d.sendable) {
-    aOpen.href = "https://x.com/intent/post?text=" + encodeURIComponent(d.text);
-    aOpen.target = "_blank";
-    aOpen.rel = "noopener";
-  } else {
-    aOpen.classList.add("disabled");
+  // 如果几乎没有空行，就按单行尝试
+  if (blocks.length <= 1) {
+    blocks = text.split('\n').map(b => b.trim()).filter(b => b.length > 5);
   }
-  btns.appendChild(aOpen);
 
-  card.appendChild(btns);
-  card.appendChild(msg);
-  queue.appendChild(card);
+  if (blocks.length === 0) {
+    showToast('沒有識別到有效推文');
+    return;
+  }
+
+  const acc = document.getElementById('defaultAccount').value.trim() || '@Newwish0';
+  let maxId = tableData.reduce((m, r) => Math.max(m, parseInt(r.id) || 0), 0);
+
+  blocks.forEach(block => {
+    maxId++;
+    tableData.push({
+      id: String(maxId).padStart(3, '0'),
+      account: acc,
+      status: '待發',
+      text: block,
+      note: '',
+      sendable: true
+    });
+  });
+
+  renderTable();
+  saveTableToStorage();
+  showToast(`成功導入 ${blocks.length} 條推文`);
+}
+
+function exportExcel() {
+  const wsData = [
+    ['編號', '帳號', '狀態', '可發', '推文內容', '備註'],
+    ...tableData.map(r => [r.id, r.account, r.status, r.sendable ? '是' : '否', r.text, r.note || ''])
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '待發數據');
+  XLSX.writeFile(wb, `待發箱222_${new Date().toISOString().slice(0,10)}.xlsx`);
+  showToast('Excel 已匯出');
+}
+
+function importExcel(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const data = new Uint8Array(ev.target.result);
+    const wb = XLSX.read(data, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const json = XLSX.utils.sheet_to_json(ws, { header: 1 });
+    if (json.length < 2) { showToast('Excel 內容為空'); return; }
+    tableData = [];
+    for (let i = 1; i < json.length; i++) {
+      const row = json[i];
+      if (!row || !row[4]) continue;
+      tableData.push({
+        id: String(row[0] || i).padStart(3,'0'),
+        account: row[1] || '@Newwish0',
+        status: row[2] || '待發',
+        sendable: row[3] === '是' || row[3] === true || row[3] === 1,
+        text: String(row[4] || ''),
+        note: String(row[5] || '')
+      });
+    }
+    renderTable();
+    saveTableToStorage();
+    showToast(`已匯入 ${tableData.length} 條數據`);
+  };
+  reader.readAsArrayBuffer(file);
+  e.target.value = '';
+}
+
+function loadToOutbox() {
+  // 先把表格當前格子裡的字讀回 tableData（date 等表格外字段原樣保留）
+  const rows = document.querySelectorAll('#tableBody tr');
+  rows.forEach((tr, idx) => {
+    if (!tableData[idx]) return;
+    const cells = tr.querySelectorAll('[contenteditable]');
+    cells.forEach(cell => {
+      tableData[idx][cell.dataset.field] = cell.innerText.trim();
+    });
+  });
+  outboxData = JSON.parse(JSON.stringify(tableData));
+  saveTableToStorage();
+  saveLoadedToStorage();
+  renderOutbox();
+  showToast(`已載入 ${outboxData.length} 條到待發箱`);
+  window.scrollTo({ top: document.getElementById('queue').offsetTop - 60, behavior: 'smooth' });
+}
+
+function isSentEntry(d, sentIds) {
+  return sentIds.includes(d.id) || d.status === '已發' || d.status === '已刪';
+}
+
+function renderOutbox() {
+  const sentIds = getSentIds();
+  const queue = document.getElementById('queue');
+  const empty = document.getElementById('empty');
+  queue.innerHTML = '';
+
+  let pending = 0, sent = 0;
+  outboxData.forEach(d => {
+    if (isSentEntry(d, sentIds)) sent++;
+    else if (d.sendable) pending++;
+  });
+
+  document.getElementById('stats').innerHTML = `
+    <div class="stat">待發 <strong>${pending}</strong></div>
+    <div class="stat">已發 <strong>${sent}</strong></div>
+    <div class="stat">總計 ${outboxData.length}</div>
+  `;
+
+  let visible = 0;
+  outboxData.forEach(d => {
+    const isSent = isSentEntry(d, sentIds);
+    if (showMode === 'pending' && (isSent || !d.sendable)) return;
+    visible++;
+
+    const card = document.createElement('div');
+    card.className = 'card' + (isSent ? ' sent' : '');
+    const len = [...(d.text || '')].length;
+    const tagClass = isSent ? 'sent-tag' : (d.sendable ? 'status' : 'drafting');
+    const tagText = sentIds.includes(d.id) ? '已發送' : d.status;
+
+    let btnsHtml = '';
+    if (!isSent && d.sendable) {
+      btnsHtml = `
+        <div class="btn-row">
+          <button class="copy" data-act="copy" data-id="${esc(d.id)}">複製全文</button>
+          <a class="open" href="https://x.com/intent/post?text=${encodeURIComponent(d.text)}" target="_blank" rel="noopener">在 X 打開</a>
+        </div>
+        <button class="mark" data-act="mark" data-id="${esc(d.id)}">✓ 標記已發送</button>
+      `;
+    } else if (isSent && sentIds.includes(d.id)) {
+      btnsHtml = `<button class="unmark" data-act="unmark" data-id="${esc(d.id)}">取消標記</button>`;
+    } else if (isSent) {
+      btnsHtml = `<button disabled>已發</button>`;
+    } else {
+      btnsHtml = `<button disabled>備稿中</button>`;
+    }
+
+    card.innerHTML = `
+      <div class="meta">
+        <span class="tag">編號 ${esc(d.id)}</span>
+        <span class="tag">${esc(d.account || '@Newwish0')}</span>
+        ${d.date ? `<span class="tag">${esc(d.date)}</span>` : ''}
+        <span class="tag ${tagClass}">${esc(tagText)}</span>
+      </div>
+      <div class="text">${esc(d.text)}</div>
+      ${d.note ? `<div class="note">${esc(d.note)}</div>` : ''}
+      <div class="char-count ${len > 280 ? 'over' : len > 250 ? 'warn' : ''}">${len} 字</div>
+      <div class="btns">${btnsHtml}</div>
+    `;
+    queue.appendChild(card);
+  });
+
+  empty.style.display = visible === 0 ? 'block' : 'none';
+}
+
+// 待發箱按鈕事件代理：複製按編號查原文，不把全文嵌進 onclick
+document.getElementById('queue').addEventListener('click', function (e) {
+  const btn = e.target.closest('[data-act]');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  const act = btn.dataset.act;
+  if (act === 'copy') {
+    const d = outboxData.find(x => x.id === id);
+    if (!d) return;
+    const done = () => {
+      const old = btn.textContent;
+      btn.textContent = '已複製 ✓';
+      setTimeout(() => { btn.textContent = old; }, 1600);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(d.text).then(done).catch(() => showToast('複製失敗'));
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = d.text;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); done(); } catch (err) { showToast('複製失敗'); }
+      document.body.removeChild(ta);
+    }
+  } else if (act === 'mark') {
+    const ids = getSentIds();
+    if (!ids.includes(id)) {
+      ids.push(id);
+      saveSentIds(ids);
+      showToast('已標記為發送');
+      renderOutbox();
+    }
+  } else if (act === 'unmark') {
+    saveSentIds(getSentIds().filter(x => x !== id));
+    showToast('已恢復為待發');
+    renderOutbox();
+  }
 });
+
+function resetSent() {
+  if (confirm('確定清除所有「已發送」標記？')) {
+    localStorage.removeItem(STORAGE_SENT);
+    showToast('已重置');
+    renderOutbox();
+  }
+}
+
+// 初始化
+(function init() {
+  try {
+    const saved = localStorage.getItem(STORAGE_TABLE);
+    if (saved) tableData = JSON.parse(saved);
+    else tableData = JSON.parse(JSON.stringify(SEED_222));
+  } catch { tableData = JSON.parse(JSON.stringify(SEED_222)); }
+  renderTable();
+
+  // 同步主页按钮
+  const acc = document.getElementById('defaultAccount').value || '@Newwish0';
+  document.getElementById('openProfileBtn').href = 'https://x.com/' + acc.replace('@','');
+
+  try {
+    const loaded = localStorage.getItem(STORAGE_LOADED);
+    if (loaded) {
+      outboxData = JSON.parse(loaded);
+    } else {
+      outboxData = JSON.parse(JSON.stringify(tableData));
+    }
+  } catch {
+    outboxData = JSON.parse(JSON.stringify(tableData));
+  }
+  renderOutbox();
+})();
 </script>
 </body>
 </html>
