@@ -77,6 +77,7 @@
   .vmodal video { width: 100%; max-height: 68vh; background: #000; border-radius: 12px; display: block; }
   .vmodal-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
   .vmodal-back { background: #253341 !important; color: #fff; }
+  .vmodal-tip { font-size: 15px; color: #8b98a5; text-align: center; margin-top: 2px; }
 </style>
 </head>
 <body>
@@ -154,7 +155,8 @@ document.querySelectorAll('button[data-copy]').forEach(function (b) {
     <button id="vmodal-close" class="vmodal-x" type="button">✕ 关闭</button>
     <video id="vmodal-video" controls playsinline preload="none"></video>
     <div class="vmodal-actions">
-      <a id="vmodal-dl" class="btn" download>⬇ 下载视频</a>
+      <button id="vmodal-dl" class="btn" type="button">⬇ 下载视频</button>
+      <div class="vmodal-tip">点一下就存到手机文件里，不跳页面；存好按「返回待发箱」。</div>
       <button id="vmodal-back" class="vmodal-back" type="button">← 返回待发箱</button>
     </div>
   </div>
@@ -165,10 +167,12 @@ document.querySelectorAll('button[data-copy]').forEach(function (b) {
   var modal = document.getElementById('vmodal');
   var video = document.getElementById('vmodal-video');
   var dl = document.getElementById('vmodal-dl');
+  var dlHref = '';
+  var dlName = '';
   function openVideo(href, name) {
     video.src = href;
-    dl.href = href;
-    if (name) { dl.setAttribute('download', name); }
+    dlHref = href;
+    dlName = name || 'video.mp4';
     modal.hidden = false;
     document.body.style.overflow = 'hidden';
     var p = video.play();
@@ -187,6 +191,25 @@ document.querySelectorAll('button[data-copy]').forEach(function (b) {
       var href = a.getAttribute('href');
       var name = href.split('/').pop();
       openVideo(href, name);
+    });
+  });
+  dl.addEventListener('click', function () {
+    var old = dl.textContent;
+    dl.textContent = '正在下载…';
+    fetch(dlHref).then(function (r) { return r.blob(); }).then(function (blob) {
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = dlName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 5000);
+      dl.textContent = '已开始下载 ✓';
+      setTimeout(function () { dl.textContent = old; }, 2500);
+    }).catch(function () {
+      dl.textContent = '下载失败，长按视频选存储';
+      setTimeout(function () { dl.textContent = old; }, 3000);
     });
   });
   document.getElementById('vmodal-close').addEventListener('click', closeVideo);
