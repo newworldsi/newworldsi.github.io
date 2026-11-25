@@ -88,6 +88,8 @@
   #outbox-table th { background: #253341; }
   #outbox-table tr:nth-child(even) td { background: #15202b; }
   #outbox-table a { color: #1d9bf0; text-decoration: none; }
+
+  .refreshbar { margin-bottom: 16px; }
 </style>
 </head>
 <body>
@@ -96,6 +98,7 @@
 <div class="sortbar">
   <button id="sort-btn" type="button">排序：編號 ↑</button>
   <button id="table-btn" type="button" class="ghost">表格</button>
+  <button id="refresh-btn-top" type="button" class="ghost">刷新</button>
 </div>
 <div id="outbox-table" hidden></div>
 
@@ -637,6 +640,10 @@
 
 
 <p class="foot">待發布的片：標題、簡介點按鈕複製；成片點「視頻文件」按鈕站內播放，框裡右上角有關閉、下面有返回和下載，關了就回待發箱。發完告訴 222 讀回核對。</p>
+<div class="refreshbar">
+  <button id="refresh-btn-bottom" type="button">刷新</button>
+</div>
+
 
 <script>
 document.querySelectorAll('button[data-copy]').forEach(function (b) {
@@ -784,6 +791,9 @@ document.querySelectorAll('button[data-copy]').forEach(function (b) {
     if (tableBox.hidden) { buildTable(); tableBox.hidden = false; tableBtn.textContent = '卡片'; }
     else { tableBox.hidden = true; tableBtn.textContent = '表格'; }
   });
+  function hardRefresh() { location.href = location.pathname + '?v=' + Date.now(); }
+  document.getElementById('refresh-btn-top').addEventListener('click', hardRefresh);
+  document.getElementById('refresh-btn-bottom').addEventListener('click', hardRefresh);
   applySort();
 })();
 </script>
