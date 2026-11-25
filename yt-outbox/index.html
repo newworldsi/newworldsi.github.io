@@ -78,11 +78,27 @@
   .vmodal-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
   .vmodal-back { background: #253341 !important; color: #fff; }
   .vmodal-tip { font-size: 15px; color: #8b98a5; text-align: center; margin-top: 2px; }
+
+  /* 排序＋表格：出品人找片用（2026-11-25 衛視親令加） */
+  .sortbar { display: flex; gap: 10px; margin-bottom: 16px; position: sticky; top: 0; z-index: 100; background: #0f1419; padding: 8px 0; }
+  .sortbar button { flex: 1; width: auto; }
+  #outbox-table { margin-bottom: 18px; overflow-x: auto; }
+  #outbox-table table { width: 100%; border-collapse: collapse; font-size: 16px; }
+  #outbox-table th, #outbox-table td { border: 1px solid #38444d; padding: 8px; text-align: left; vertical-align: top; }
+  #outbox-table th { background: #253341; }
+  #outbox-table tr:nth-child(even) td { background: #15202b; }
+  #outbox-table a { color: #1d9bf0; text-decoration: none; }
 </style>
 </head>
 <body>
 <h1>YouTube 待發箱</h1>
 <p class="sub">每支要上 YouTube 的片先入箱：222 備好文件與文案，出品人親審、親自發布；發布後 222 讀回核對。</p>
+<div class="sortbar">
+  <button id="sort-btn" type="button">排序：編號 ↑</button>
+  <button id="table-btn" type="button" class="ghost">表格</button>
+</div>
+<div id="outbox-table" hidden></div>
+
 
 <div class="card">
   <div class="meta">
@@ -713,6 +729,62 @@ document.querySelectorAll('button[data-copy]').forEach(function (b) {
   document.getElementById('vmodal-back').addEventListener('click', closeVideo);
   modal.addEventListener('click', function (e) { if (e.target === modal) { closeVideo(); } });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.hidden) { closeVideo(); } });
+})();
+</script>
+
+<script>
+(function () {
+  var foot = document.querySelector('p.foot');
+  var sortBtn = document.getElementById('sort-btn');
+  var tableBtn = document.getElementById('table-btn');
+  var tableBox = document.getElementById('outbox-table');
+  function tagText(card) {
+    var t = card.querySelector('.tag');
+    return t ? t.textContent.trim() : '';
+  }
+  function numOf(card) {
+    var m = tagText(card).match(/Y(\d+)/);
+    return m ? parseInt(m[1], 10) : null;
+  }
+  function titleOf(card) {
+    var el = card.querySelector('.ttl');
+    return el ? el.textContent.trim() : '';
+  }
+  function statusOf(card) {
+    return card.querySelector('.tag.todo') ? '待發布' : '已發布';
+  }
+  function videoOf(card) {
+    var a = card.querySelector('a.btn[href$=".mp4"]');
+    return a ? a.getAttribute('href') : '';
+  }
+  function domCards() {
+    return Array.prototype.slice.call(document.querySelectorAll('div.card'));
+  }
+  var asc = true;
+  function applySort() {
+    var numbered = [], other = [];
+    domCards().forEach(function (c) { (numOf(c) === null ? other : numbered).push(c); });
+    numbered.sort(function (a, b) { return (numOf(a) - numOf(b)) * (asc ? 1 : -1); });
+    numbered.concat(other).forEach(function (c) { foot.parentNode.insertBefore(c, foot); });
+    sortBtn.textContent = asc ? '排序：編號 ↑' : '排序：編號 ↓';
+    if (!tableBox.hidden) { buildTable(); }
+  }
+  function buildTable() {
+    var rows = domCards().map(function (c) {
+      var n = numOf(c);
+      var label = n === null ? tagText(c) : 'Y' + ('00' + n).slice(-3);
+      var href = videoOf(c);
+      var link = href ? '<a href="' + href + '" download>視頻</a>' : '';
+      return '<tr><td>' + label + '</td><td>' + titleOf(c).replace(/</g, '&lt;') + '</td><td>' + statusOf(c) + '</td><td>' + link + '</td></tr>';
+    }).join('');
+    tableBox.innerHTML = '<table><tr><th>編號</th><th>標題</th><th>狀態</th><th>視頻</th></tr>' + rows + '</table>';
+  }
+  sortBtn.addEventListener('click', function () { asc = !asc; applySort(); });
+  tableBtn.addEventListener('click', function () {
+    if (tableBox.hidden) { buildTable(); tableBox.hidden = false; tableBtn.textContent = '卡片'; }
+    else { tableBox.hidden = true; tableBtn.textContent = '表格'; }
+  });
+  applySort();
 })();
 </script>
 </body>
