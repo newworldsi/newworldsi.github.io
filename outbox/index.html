@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>待發箱 · 數據管理版（222）</title>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -144,6 +147,12 @@
   <h1>待發箱 · 數據管理版（222）</h1>
   <p class="sub">222 備稿 → 表格調整 → 載入待發箱 → 親手發到指定帳號</p>
 
+  <!-- 退出機制（2026-11-26 衛視令）：從 X 箱退回 YouTube 箱／主頁 -->
+  <div class="toolbar" style="margin-bottom:16px">
+    <a class="btn" href="../yt-outbox/" style="text-decoration:none;">← 回 YouTube 待發箱</a>
+    <a class="btn secondary" href="../" style="text-decoration:none;">回主頁</a>
+  </div>
+
   <!-- 1. 帳號選擇 -->
   <div class="section">
     <h2>1. 選擇預設推特帳號</h2>
@@ -238,7 +247,8 @@
 
   <footer>
     流程：打開主頁複製推文 → 粘貼到中間箱 → 解析導入 → 表格調整 → 載入待發箱（推薦箱）→ 親手發帖 → 標記已發送<br>
-    2026-11-13 新規：X 發帖全歸出品人，222 只填箱、不代發。保留規矩：當天已發的條目不清除，至少保留到當晚 24:00；過了半夜才摺疊歸檔，永遠不刪。發完告訴 222 讀回核對。
+    2026-11-13 新規：X 發帖全歸出品人，222 只填箱、不代發。保留規矩：當天已發的條目不清除，至少保留到當晚 24:00；過了半夜才摺疊歸檔，永遠不刪。發完告訴 222 讀回核對。<br>
+    <a href="../yt-outbox/" style="color:#1d9bf0;">← 回 YouTube 待發箱</a>
   </footer>
 
   <div class="toast" id="toast"></div>
