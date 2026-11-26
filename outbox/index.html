@@ -191,6 +191,7 @@
         <input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importExcel(event)">
       </label>
       <button class="danger" onclick="clearTable()">清空表格</button>
+      <button class="secondary sortOrderBtn" onclick="toggleSortOrder()">排序：正序 ↑</button>
     </div>
 
     <div class="table-wrap">
@@ -225,6 +226,7 @@
     <div class="toolbar">
       <button class="secondary" onclick="showMode='pending';renderOutbox()">只看待發</button>
       <button class="secondary" onclick="showMode='all';renderOutbox()">顯示全部</button>
+      <button class="secondary sortOrderBtn" onclick="toggleSortOrder()">排序：正序 ↑</button>
       <button class="danger" onclick="resetSent()">重置已發送標記</button>
     </div>
     <div id="queue"></div>
@@ -248,6 +250,38 @@ let showMode = 'all';
 const STORAGE_SENT = 'outbox222_sent_ids_v1';
 const STORAGE_TABLE = 'outbox222_table_data_v1';
 const STORAGE_LOADED = 'outbox222_loaded_data_v1';
+
+// 按編號排序（2026-11-26 衛視令：代發箱按編號順序走、好找；正序 001→039，點按鈕可切倒序）
+let sortAsc = true;
+function cmpId(a, b) {
+  const x = String(a.id || ''), y = String(b.id || '');
+  if (x < y) return sortAsc ? -1 : 1;
+  if (x > y) return sortAsc ? 1 : -1;
+  return 0;
+}
+// 手機舊存檔會蓋住新種子條目（如 039）：把種子裡缺的編號補進來，舊改動不動
+function mergeSeed(arr) {
+  const ids = new Set(arr.map(r => String(r.id)));
+  SEED_222.forEach(s => { if (!ids.has(String(s.id))) arr.push(JSON.parse(JSON.stringify(s))); });
+  return arr;
+}
+function readTableCells() {
+  const rows = document.querySelectorAll('#tableBody tr');
+  rows.forEach((tr, idx) => {
+    if (!tableData[idx]) return;
+    tr.querySelectorAll('[contenteditable]').forEach(cell => { tableData[idx][cell.dataset.field] = cell.innerText.trim(); });
+  });
+}
+function sortAllById() {
+  readTableCells();
+  tableData.sort(cmpId);
+  outboxData.sort(cmpId);
+  saveTableToStorage(); saveLoadedToStorage();
+  renderTable(); renderOutbox();
+  document.querySelectorAll('.sortOrderBtn').forEach(b => { b.textContent = sortAsc ? '排序：正序 ↑' : '排序：倒序 ↓'; });
+  showToast(sortAsc ? '已按編號正序排列' : '已按編號倒序排列');
+}
+function toggleSortOrder() { sortAsc = !sortAsc; sortAllById(); }
 
 // 222 現有條目（2026-11-20 晚整理，原文＋備註全保留；014–019 原無帳號／狀態，補帳號 @Newwish0、狀態按可發與否補為待發／備稿中；兩個 007 是 888 入箱時編號重複的疏漏，原樣保留）
 const SEED_222 = [
@@ -388,6 +422,7 @@ function clearTable() {
 
 function loadSeedData() {
   tableData = JSON.parse(JSON.stringify(SEED_222));
+  tableData.sort(cmpId);
   renderTable();
   saveTableToStorage();
   showToast('已載入 222 現有條目');
@@ -490,14 +525,8 @@ function importExcel(e) {
 
 function loadToOutbox() {
   // 先把表格當前格子裡的字讀回 tableData（date 等表格外字段原樣保留）
-  const rows = document.querySelectorAll('#tableBody tr');
-  rows.forEach((tr, idx) => {
-    if (!tableData[idx]) return;
-    const cells = tr.querySelectorAll('[contenteditable]');
-    cells.forEach(cell => {
-      tableData[idx][cell.dataset.field] = cell.innerText.trim();
-    });
-  });
+  readTableCells();
+  tableData.sort(cmpId);
   outboxData = JSON.parse(JSON.stringify(tableData));
   saveTableToStorage();
   saveLoadedToStorage();
@@ -622,13 +651,16 @@ function resetSent() {
   }
 }
 
-// 初始化
+// 初始化（2026-11-26：舊手機存檔會蓋住新條目，開頁先把種子缺的編號補進來再按編號排）
 (function init() {
   try {
     const saved = localStorage.getItem(STORAGE_TABLE);
     if (saved) tableData = JSON.parse(saved);
     else tableData = JSON.parse(JSON.stringify(SEED_222));
   } catch { tableData = JSON.parse(JSON.stringify(SEED_222)); }
+  tableData = mergeSeed(tableData);
+  tableData.sort(cmpId);
+  saveTableToStorage();
   renderTable();
 
   // 同步主页按钮
@@ -645,6 +677,9 @@ function resetSent() {
   } catch {
     outboxData = JSON.parse(JSON.stringify(tableData));
   }
+  outboxData = mergeSeed(outboxData);
+  outboxData.sort(cmpId);
+  saveLoadedToStorage();
   renderOutbox();
 })();
 </script>
