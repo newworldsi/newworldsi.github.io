@@ -850,15 +850,27 @@ document.querySelectorAll('button[data-copy]').forEach(function (b) {
     sortBtn.textContent = asc ? '排序：編號 ↑' : '排序：編號 ↓';
     if (!tableBox.hidden) { buildTable(); }
   }
+  function descOf(card) {
+    var el = card.querySelector('.text');
+    return el ? el.textContent.trim() : '';
+  }
+  function tagsOf(card) {
+    var notes = card.querySelectorAll('p.note');
+    for (var i = 0; i < notes.length; i++) {
+      var t = notes[i].textContent.trim();
+      if (t.indexOf('標籤：') === 0) { return t.slice(3).trim(); }
+    }
+    return '';
+  }
   function buildTable() {
     var rows = domCards().map(function (c) {
       var n = numOf(c);
       var label = n === null ? tagText(c) : 'Y' + ('00' + n).slice(-3);
       var href = videoOf(c);
       var link = href ? '<a href="' + href + '" download>視頻</a>' : '';
-      return '<tr><td>' + label + '</td><td>' + titleOf(c).replace(/</g, '&lt;') + '</td><td>' + statusOf(c) + '</td><td>' + link + '</td></tr>';
+      return '<tr><td>' + label + '</td><td>' + titleOf(c).replace(/</g, '&lt;') + '</td><td>' + statusOf(c) + '</td><td>' + descOf(c).replace(/</g, '&lt;') + '</td><td>' + tagsOf(c).replace(/</g, '&lt;') + '</td><td>' + link + '</td></tr>';
     }).join('');
-    tableBox.innerHTML = '<table><tr><th>編號</th><th>標題</th><th>狀態</th><th>視頻</th></tr>' + rows + '</table>';
+    tableBox.innerHTML = '<table><tr><th>編號</th><th>標題</th><th>狀態</th><th>說明</th><th>標籤</th><th>視頻</th></tr>' + rows + '</table>';
   }
   sortBtn.addEventListener('click', function () { asc = !asc; applySort(); });
   tableBtn.addEventListener('click', function () {
