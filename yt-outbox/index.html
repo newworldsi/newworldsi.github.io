@@ -919,7 +919,7 @@ document.querySelectorAll('button[data-copy]').forEach(function (b) {
   function domCards() {
     return Array.prototype.slice.call(document.querySelectorAll('div.card'));
   }
-  var asc = true;
+  var asc = false;
   function applySort() {
     var numbered = [], other = [];
     domCards().forEach(function (c) { (numOf(c) === null ? other : numbered).push(c); });
